@@ -1,66 +1,160 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>NMEA to Map (Leaflet)</title>
-    <meta charset="utf-8" />
-    <style>
-        #map {
-            height: 500px;
-            width: 100%;
-            margin-top: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>NMEA to Map Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap');
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    h2 {
+      margin-top: 30px;
+      font-size: 28px;
+      animation: slideDown 1s ease;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      text-align: center;
+      animation: fadeUp 1s ease;
+    }
+
+    input {
+      width: 90%;
+      max-width: 600px;
+      padding: 12px 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      margin-top: 15px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #ff4b2b;
+      color: white;
+      border: none;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #ff416c;
+    }
+
+    #map {
+      height: 500px;
+      width: 95%;
+      max-width: 1000px;
+      margin: 30px auto;
+      border-radius: 15px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      animation: fadeUp 1s ease;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 600px) {
+      input {
+        width: 100%;
+      }
+
+      #map {
+        height: 400px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h2>Enter NMEA ($GPRMC) Code</h2>
-    <input type="text" id="nmeaInput" size="100" placeholder="$GPRMC,092204.999,A,5321.6802,N,00630.3372,W,0.06,31.66,280511,,,A*77">
-    <button onclick="processNMEA()">Show on Map</button>
 
-    <div id="map"></div>
+  <h2>NMEA (GPRMC) Location Viewer</h2>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <div class="container">
+    <input type="text" id="nmeaInput" placeholder="Paste $GPRMC code here (e.g. $GPRMC,092204.999,A,5321.6802,N,00630.3372,W,...)" />
+    <br>
+    <button onclick="processNMEA()">Show Location</button>
+  </div>
 
-    <script>
-        let map = L.map('map').setView([0, 0], 2);
-        let marker;
+  <div id="map"></div>
 
-        // Set OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    let map = L.map('map').setView([0, 0], 2);
+    let marker;
 
-        function convertToDecimalDegrees(raw, direction) {
-            const deg = parseInt(raw.slice(0, raw.indexOf('.') - 2));
-            const min = parseFloat(raw.slice(raw.indexOf('.') - 2));
-            let decimal = deg + (min / 60);
-            if (direction === 'S' || direction === 'W') decimal *= -1;
-            return decimal;
-        }
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-        function processNMEA() {
-            const nmea = document.getElementById("nmeaInput").value;
-            const parts = nmea.split(',');
+    function convertToDecimalDegrees(raw, direction) {
+      const deg = parseInt(raw.slice(0, raw.indexOf('.') - 2));
+      const min = parseFloat(raw.slice(raw.indexOf('.') - 2));
+      let decimal = deg + (min / 60);
+      if (direction === 'S' || direction === 'W') decimal *= -1;
+      return decimal;
+    }
 
-            if (parts[0] !== '$GPRMC' || parts[2] !== 'A') {
-                alert("Invalid or inactive NMEA sentence.");
-                return;
-            }
+    function processNMEA() {
+      const nmea = document.getElementById("nmeaInput").value.trim();
+      const parts = nmea.split(',');
 
-            const lat = convertToDecimalDegrees(parts[3], parts[4]);
-            const lon = convertToDecimalDegrees(parts[5], parts[6]);
+      if (parts[0] !== '$GPRMC' || parts[2] !== 'A') {
+        alert("Invalid or inactive NMEA sentence.");
+        return;
+      }
 
-            // Move map and place marker
-            map.setView([lat, lon], 15);
-            if (marker) {
-                marker.setLatLng([lat, lon]);
-            } else {
-                marker = L.marker([lat, lon]).addTo(map);
-            }
-        }
-    </script>
+      const lat = convertToDecimalDegrees(parts[3], parts[4]);
+      const lon = convertToDecimalDegrees(parts[5], parts[6]);
+
+      map.setView([lat, lon], 15);
+
+      if (marker) {
+        marker.setLatLng([lat, lon]);
+      } else {
+        marker = L.marker([lat, lon]).addTo(map);
+      }
+    }
+  </script>
 </body>
 </html>
