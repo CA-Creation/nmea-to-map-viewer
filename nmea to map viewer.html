@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NMEA to Map (Leaflet)</title>
+    <meta charset="utf-8" />
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <h2>Enter NMEA ($GPRMC) Code</h2>
+    <input type="text" id="nmeaInput" size="100" placeholder="$GPRMC,092204.999,A,5321.6802,N,00630.3372,W,0.06,31.66,280511,,,A*77">
+    <button onclick="processNMEA()">Show on Map</button>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let map = L.map('map').setView([0, 0], 2);
+        let marker;
+
+        // Set OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        function convertToDecimalDegrees(raw, direction) {
+            const deg = parseInt(raw.slice(0, raw.indexOf('.') - 2));
+            const min = parseFloat(raw.slice(raw.indexOf('.') - 2));
+            let decimal = deg + (min / 60);
+            if (direction === 'S' || direction === 'W') decimal *= -1;
+            return decimal;
+        }
+
+        function processNMEA() {
+            const nmea = document.getElementById("nmeaInput").value;
+            const parts = nmea.split(',');
+
+            if (parts[0] !== '$GPRMC' || parts[2] !== 'A') {
+                alert("Invalid or inactive NMEA sentence.");
+                return;
+            }
+
+            const lat = convertToDecimalDegrees(parts[3], parts[4]);
+            const lon = convertToDecimalDegrees(parts[5], parts[6]);
+
+            // Move map and place marker
+            map.setView([lat, lon], 15);
+            if (marker) {
+                marker.setLatLng([lat, lon]);
+            } else {
+                marker = L.marker([lat, lon]).addTo(map);
+            }
+        }
+    </script>
+</body>
+</html>
